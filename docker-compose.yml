@@ -1,0 +1,60 @@
+version: '2'
+
+services:
+   db:
+     image: mariadb:latest
+     container_name: dbwp-cyber
+     ports:
+         - 3306:3306
+     volumes:
+       - db_data:/var/lib/mysql
+     restart: always
+     environment:
+       MYSQL_ROOT_PASSWORD: YOURPASSWORD
+       MYSQL_DATABASE: wordpress
+       MYSQL_USER: wordpress
+       MYSQL_PASSWORD: YOURPASSWORD
+       TZ: Europe/Paris
+   nginx:
+    image: nginx:latest
+    container_name: wp_rp
+    depends_on:
+      - modsecurity
+    ports:
+      - 80:80
+      - 9443:9443
+    volumes:
+      - /etc/nginx/sites-enabled/challenge.conf:/etc/nginx/nginx.conf
+#      - /etc/nginx/sites-enabled/try.conf:/etc/nginx/nginx.conf
+      - /wordpress-dest:/var/www/html
+      - /etc/nginx/logs:/etc/nginx/logs
+      - /etc/nginx/certs:/etc/nginx/certs
+    environment:
+       TZ: Europe/Paris
+   modsecurity:
+    container_name: modsec
+    image: owasp/modsecurity-crs:3.3.4-nginx-202209221209
+    ports:
+      - 443:443
+    volumes:
+      - /etc/nginx/modsecurity/modsecurity.conf:/etc/nginx/nginx-mod.conf:ro
+      - /etc/nginx/logs:/etc/nginx/logs
+      - /etc/nginx/modsecurity/conf.d:/etc/nginx/conf.d
+      - /etc/nginx/modsecurity/conf.d/maybe.conf:/etc/nginx/conf.d/maybe.conf
+      - /etc/nginx/modsecurity/sites-enabled:/etc/nginx/sites-enabled
+      - /etc/nginx/certs:/etc/nginx/certs
+    environment:
+      TZ: Europe/Paris
+   wordpress:
+     image: wordpress:latest
+     container_name: wp01-cyber02
+     restart: always
+     environment:
+       WORDPRESS_DB_HOST: db:3306
+       WORDPRESS_DB_USER: wordpress
+       WORDPRESS_DB_PASSWORD: YOURPASSWORD
+       TZ: Europe/Paris
+     volumes:
+        - /wordpress-dest/:/var/www/html
+volumes:
+  db_data:
